@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Montez, Tangerine, Cookie } from "next/font/google";
 import "./globals.css";
+import {
+  ClerkProvider,
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs'
+
 
 const montez = Montez({
   variable: "--font-montez",
@@ -50,13 +59,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${montez.variable} antialiased`}
-      >
-        {children}
-
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body  className={`${montez.variable} antialiased`}>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
