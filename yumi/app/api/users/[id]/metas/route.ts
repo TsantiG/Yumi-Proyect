@@ -1,0 +1,1 @@
+// infomrcaion de metas, tambiuen se debe cambiar el nombre de la carpeta

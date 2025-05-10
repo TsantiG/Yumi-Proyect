@@ -1,0 +1,1 @@
+// informacion de usuario actual, por hacer pero dejo la estructura para que no se me  olvide
