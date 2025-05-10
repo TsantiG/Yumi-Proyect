@@ -110,6 +110,7 @@ export const dietasUsuario = pgTable(
 export const recetas = pgTable("recetas", {
   id: serial("id").primaryKey(),
   autorId: uuid("autor_id").references(() => usuarios.id, { onDelete: "set null" }),
+  
   titulo: text("titulo").notNull(),
   descripcion: text("descripcion"),
   instrucciones: text("instrucciones"),
@@ -121,6 +122,7 @@ export const recetas = pgTable("recetas", {
   imagenUrl: text("imagen_url"),
   fechaCreacion: timestamp("fecha_creacion").defaultNow(),
   fechaActualizacion: timestamp("fecha_actualizacion").defaultNow(),
+  categoriaId: integer("categoria_id").references(()=> categorias.id, {onDelete: "set null"}),
   dietaId: integer("dieta_id").references(() => dietas.id, { onDelete: "set null" }),
 })
 
@@ -129,6 +131,10 @@ export const recetasRelations = relations(recetas, ({ one, many }) => ({
   autor: one(usuarios, {
     fields: [recetas.autorId],
     references: [usuarios.id],
+  }),
+  categoria: one(categorias, {
+    fields: [recetas.categoriaId],
+    references: [categorias.id],
   }),
   dieta: one(dietas, {
     fields: [recetas.dietaId],
@@ -142,7 +148,14 @@ export const recetasRelations = relations(recetas, ({ one, many }) => ({
   intentos: many(intentosRecetas),
   infoNutricional: one(infoNutricional),
   consejos: many(consejosRecetas),
-}))
+}));
+
+//categorias
+export const categoriasRelations = relations(categorias, ({ many }) => ({
+  recetas: many(recetas),
+  preferencias: many(preferenciasUsuario),
+}));
+
 
 // Etiquetas
 export const etiquetas = pgTable("etiquetas", {

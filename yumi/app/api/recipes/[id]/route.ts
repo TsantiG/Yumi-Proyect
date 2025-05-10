@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "../../db"
 import { recetas, usuarios, ingredientes, comentarios, puntuaciones } from "../../db/schema"
 import { eq } from "drizzle-orm"
-import { auth } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server";
+import { sql } from "drizzle-orm";
+
 
 // GET: Obtener una receta específica con sus detalles
 export async function GET(
@@ -17,6 +19,7 @@ export async function GET(
       where: eq(recetas.id, id),
       with: {
         autor: true,
+        categoria: true,
         ingredientes: true,
         comentarios: {
           with: {
@@ -72,7 +75,7 @@ export async function PUT(
     const id = parseInt(params.id)
     
     // Verificar autenticación
-    const { userId } = auth()
+    const { userId } = await  auth()
     if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
@@ -152,7 +155,7 @@ export async function DELETE(
     const id = parseInt(params.id)
     
     // Verificar autenticación
-    const { userId } = auth()
+    const { userId } = await  auth() // que error mas estupido, no te olbides de poner el await pendejo
     if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
