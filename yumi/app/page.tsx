@@ -1,5 +1,5 @@
 import Image from "next/image";
-import NavHome from "@/ui/common/nav-home";
+import NavHome from "@/ui/common/home-nav";
 
 export default function Home() {
   return (
