@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // Filtros
     const nombre = searchParams.get("nombre")
-
+ 
     let query = db.select().from(categorias)
 
     // Aplicar filtro por nombre si existe
