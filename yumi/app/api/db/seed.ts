@@ -1,11 +1,21 @@
 // Este archivo se usaría para poblar la base de datos con datos iniciales
 import { db } from "./index"
-import { categorias, dietas, unidadesMedida, conversiones } from "./schema"
-
+import { categorias, dietas, unidadesMedida, conversiones, colores } from "./schema"
 
 export async function seedDatabase() {
   try {
     console.log("Iniciando población de datos iniciales...")
+
+    // Insertar colores
+    await db.insert(colores).values([
+      { nombre: "Rosa", codigo: "#FF69B4" },
+      { nombre: "Rojo", codigo: "#FF0000" },
+      { nombre: "Naranja", codigo: "#FFA500" },
+      { nombre: "Amarillo", codigo: "#FFFF00" },
+      { nombre: "Azul", codigo: "#0000FF" },
+      { nombre: "Verde", codigo: "#008000" },
+      { nombre: "Morado", codigo: "#800080" },
+    ])
 
     // Insertar categorías básicas
     await db.insert(categorias).values([

@@ -11,19 +11,28 @@ export const estadoEventoEnum = pgEnum("estado_evento", ["confirmado", "pendient
 export const tipoComidaEnum = pgEnum("tipo_comida", ["desayuno", "almuerzo", "cena", "merienda", "otro"])
 export const tipoConsejoEnum = pgEnum("tipo_consejo", ["consejo", "alternativa", "advertencia", "otro"])
 
+// Colores para personalización de la interfaz
+export const colores = pgTable("color", {
+  id: uuid("id_color").primaryKey().defaultRandom(),
+  nombre: text("nombre").notNull(),
+  codigo: text("código").notNull(),
+})
+
 // Usuarios
 export const usuarios = pgTable("usuarios", {
   id: uuid("id").primaryKey().defaultRandom(),
   idClerk: text("id_clerk").notNull().unique(),
   nombre: text("nombre"),
   email: text("email").unique(),
+  colorId: uuid("color").references(() => colores.id),
+  darkMode: boolean("darkmode").default(false),
   fechaRegistro: timestamp("fecha_registro").defaultNow(),
   urlFotoPerfil: text("url_foto_perfil"),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
 })
 
 // Relaciones de usuarios
-export const usuariosRelations = relations(usuarios, ({ many }) => ({
+export const usuariosRelations = relations(usuarios, ({ many, one }) => ({
   metas: many(metasUsuario),
   preferencias: many(preferenciasUsuario),
   dietas: many(dietasUsuario),
@@ -37,6 +46,14 @@ export const usuariosRelations = relations(usuarios, ({ many }) => ({
   intentosRecetas: many(intentosRecetas),
   historialPeso: many(historialPeso),
   planesComidas: many(planComidas),
+    color: one(colores, {
+    fields: [usuarios.colorId],
+    references: [colores.id],
+  }),
+}))
+
+export const coloresRelations = relations(colores, ({ many }) => ({
+  usuarios: many(usuarios),
 }))
 
 // Metas de usuario
