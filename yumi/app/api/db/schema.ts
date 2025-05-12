@@ -26,6 +26,7 @@ export const usuarios = pgTable("usuarios", {
   email: text("email").unique(),
   colorId: uuid("color").references(() => colores.id),
   darkMode: boolean("darkmode").default(false),
+  esAdmin: boolean("es_admin").default(false),
   fechaRegistro: timestamp("fecha_registro").defaultNow(),
   urlFotoPerfil: text("url_foto_perfil"),
   ultimaActualizacion: timestamp("ultima_actualizacion").defaultNow(),
@@ -358,8 +359,8 @@ export const planComidas = pgTable("plan_comidas", {
   id: serial("id").primaryKey(),
   usuarioId: uuid("usuario_id").references(() => usuarios.id, { onDelete: "cascade" }),
   nombre: text("nombre"),
-  fechaInicio: timestamp("fecha_inicio", { mode: "date" }),
-  fechaFin: timestamp("fecha_fin", { mode: "date" }),
+  fechaInicio: timestamp("fecha_inicio", { mode: "date" }).notNull(),
+  fechaFin: timestamp("fecha_fin", { mode: "date" }).notNull(),
   fechaCreacion: timestamp("fecha_creacion").defaultNow(),
 })
 

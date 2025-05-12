@@ -1,45 +1,35 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "../db"
-import { dietas } from "../db/schema"
-import { eq, like } from "drizzle-orm"
+import { dietas, usuarios } from "../db/schema"
+import { eq, like, sql } from "drizzle-orm"
 import { auth } from "@clerk/nextjs/server"
-import { sql } from "drizzle-orm"
 
 // GET: Obtener todas las dietas con paginación y filtros
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // Parámetros de paginación
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "20")
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "20")
     const offset = (page - 1) * limit
-
-    // Filtros
     const nombre = searchParams.get("nombre")
 
-    let query = db.select().from(dietas)
+    const filters = nombre ? [like(dietas.nombre, `%${nombre}%`)] : []
 
-    // Aplicar filtro por nombre si existe
-    if (nombre) {
-      query = query.where(like(dietas.nombre, `%${nombre}%`))
-    }
+    const dietasResult = await db
+      .select()
+      .from(dietas)
+      .where(filters.length ? filters[0] : undefined)
+      .limit(limit)
+      .offset(offset)
 
-    // Aplicar paginación
-    query = query.limit(limit).offset(offset)
-
-    // Ejecutar query
-    const resultados = await query
-
-    // Contar total para paginación
-    const countQuery = db.select({ count: sql`count(*)` }).from(dietas)
-    if (nombre) {
-      countQuery.where(like(dietas.nombre, `%${nombre}%`))
-    }
-    const [{ count }] = await countQuery
+    const [{ count }] = await db
+      .select({ count: sql`count(*)` })
+      .from(dietas)
+      .where(filters.length ? filters[0] : undefined)
 
     return NextResponse.json({
-      data: resultados,
+      data: dietasResult,
       meta: {
         total: Number(count),
         page,
@@ -56,34 +46,34 @@ export async function GET(request: NextRequest) {
 // POST: Crear una nueva dieta (solo para administradores)
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
     const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    // Aquí deberías verificar si el usuario es administrador
-    // Por ahora, permitimos a cualquier usuario autenticado crear dietas
+    const user = await db.query.usuarios.findFirst({
+      where: eq(usuarios.idClerk, userId ?? ""),
+    })
 
-    // Obtener datos de la dieta del cuerpo de la solicitud
+    if (!user || !user.esAdmin) {
+      return NextResponse.json({ error: "Solo administradores" }, { status: 403 })
+    }
+
     const body = await request.json()
 
-    // Validar datos
     if (!body.nombre) {
       return NextResponse.json({ error: "El nombre de la dieta es obligatorio" }, { status: 400 })
     }
 
-    // Verificar si ya existe una dieta con ese nombre
-    const dietaExistente = await db.query.dietas.findFirst({
+    const existe = await db.query.dietas.findFirst({
       where: eq(dietas.nombre, body.nombre),
     })
 
-    if (dietaExistente) {
+    if (existe) {
       return NextResponse.json({ error: "Ya existe una dieta con ese nombre" }, { status: 409 })
     }
 
-    // Crear la dieta
-    const nuevaDieta = await db
+    const nueva = await db
       .insert(dietas)
       .values({
         nombre: body.nombre,
@@ -92,10 +82,9 @@ export async function POST(request: NextRequest) {
       })
       .returning()
 
-    return NextResponse.json(nuevaDieta[0], { status: 201 })
+    return NextResponse.json(nueva[0], { status: 201 })
   } catch (error) {
     console.error("Error al crear dieta:", error)
     return NextResponse.json({ error: "Error al crear dieta" }, { status: 500 })
   }
 }
-

@@ -1,4 +1,4 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { db } from "../../../db"
 import { planComidas, planComidasDetalle, recetas, usuarios, tipoComidaEnum } from "../../../db/schema"
 import { eq, and, between } from "drizzle-orm"
@@ -123,6 +123,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Validar datos
     if (!body.fecha || !body.recetaId || !body.tipoComida) {
       return NextResponse.json({ error: "Fecha, recetaId y tipoComida son obligatorios" }, { status: 400 })
+    }
+
+    if (plan.fechaFin && plan.fechaFin == null){
+      return NextResponse.json({ error: "El plan de comidas no tiene fecha de fin"} , { status: 400})
     }
 
     // Validar que la fecha está dentro del rango del plan

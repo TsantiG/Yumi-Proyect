@@ -2,12 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Montez, Tangerine, Cookie } from "next/font/google";
 import "./globals.css";
 import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
+  ClerkProvider
 } from '@clerk/nextjs'
 
 

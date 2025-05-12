@@ -1,42 +1,37 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { db } from "../db"
-import { categorias } from "../db/schema"
-import { eq, like } from "drizzle-orm"
-import { auth } from "@clerk/nextjs/server"
-import { sql } from "drizzle-orm"
+import { type NextRequest, NextResponse } from "next/server";
+import { db } from "../db";
+import { categorias, usuarios } from "../db/schema";
+import { sql, like, and, eq } from "drizzle-orm";
+import {auth} from "@clerk/nextjs/server"
 
-// GET: Obtener todas las categorías con paginación y filtros
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(request.url);
 
-    // Parámetros de paginación
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "20")
-    const offset = (page - 1) * limit
+    const page = Number.parseInt(searchParams.get("page") || "1");
+    const limit = Number.parseInt(searchParams.get("limit") || "20");
+    const offset = (page - 1) * limit;
+    const nombre = searchParams.get("nombre");
 
-    // Filtros
-    const nombre = searchParams.get("nombre")
- 
-    let query = db.select().from(categorias)
+    const filters = [];
 
-    // Aplicar filtro por nombre si existe
     if (nombre) {
-      query = query.where(like(categorias.nombre, `%${nombre}%`))
+      filters.push(like(categorias.nombre, `%${nombre}%`));
     }
 
-    // Aplicar paginación
-    query = query.limit(limit).offset(offset)
+    const whereCondition = filters.length > 0 ? and(...filters) : undefined;
 
-    // Ejecutar query
-    const resultados = await query
+    const resultados = await db
+      .select()
+      .from(categorias)
+      .where(whereCondition)
+      .limit(limit)
+      .offset(offset);
 
-    // Contar total para paginación
-    const countQuery = db.select({ count: sql`count(*)` }).from(categorias)
-    if (nombre) {
-      countQuery.where(like(categorias.nombre, `%${nombre}%`))
-    }
-    const [{ count }] = await countQuery
+    const [{ count }] = await db
+      .select({ count: sql`count(*)` })
+      .from(categorias)
+      .where(whereCondition);
 
     return NextResponse.json({
       data: resultados,
@@ -46,55 +41,57 @@ export async function GET(request: NextRequest) {
         limit,
         totalPages: Math.ceil(Number(count) / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error("Error al obtener categorías:", error)
-    return NextResponse.json({ error: "Error al obtener categorías" }, { status: 500 })
+    console.error("Error al obtener categorías:", error);
+    return NextResponse.json({ error: "Error al obtener categorías" }, { status: 500 });
   }
 }
 
-// POST: Crear una nueva categoría (solo para administradores)
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación
-    const { userId } = await auth()
+    const { userId } = await auth();
+
+    
     if (!userId) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
+    const user = await db.query.usuarios.findFirst({ where: eq(usuarios.idClerk, userId) })
+    if (!user?.esAdmin) return NextResponse.json({ error: "Solo administradores" }, { status: 403 })
 
-    // Aquí deberías verificar si el usuario es administrador
-    // Por ahora, permitimos a cualquier usuario autenticado crear categorías
+    const body = await request.json();
 
-    // Obtener datos de la categoría del cuerpo de la solicitud
-    const body = await request.json()
-
-    // Validar datos
-    if (!body.nombre) {
-      return NextResponse.json({ error: "El nombre de la categoría es obligatorio" }, { status: 400 })
+    if (!body.nombre || typeof body.nombre !== "string") {
+      return NextResponse.json(
+        { error: "El nombre de la categoría es obligatorio y debe ser una cadena" },
+        { status: 400 }
+      );
     }
 
     // Verificar si ya existe una categoría con ese nombre
-    const categoriaExistente = await db.query.categorias.findFirst({
+    const existente = await db.query.categorias.findFirst({
       where: eq(categorias.nombre, body.nombre),
-    })
+    });
 
-    if (categoriaExistente) {
-      return NextResponse.json({ error: "Ya existe una categoría con ese nombre" }, { status: 409 })
+    if (existente) {
+      return NextResponse.json(
+        { error: "Ya existe una categoría con ese nombre" },
+        { status: 409 }
+      );
     }
 
-    // Crear la categoría
-    const nuevaCategoria = await db
+    // Crear la nueva categoría
+    const [nuevaCategoria] = await db
       .insert(categorias)
       .values({
         nombre: body.nombre,
-        descripcion: body.descripcion || null,
+        descripcion: typeof body.descripcion === "string" ? body.descripcion : null,
       })
-      .returning()
+      .returning();
 
-    return NextResponse.json(nuevaCategoria[0], { status: 201 })
+    return NextResponse.json(nuevaCategoria, { status: 201 });
   } catch (error) {
-    console.error("Error al crear categoría:", error)
-    return NextResponse.json({ error: "Error al crear categoría" }, { status: 500 })
+    console.error("Error al crear categoría:", error);
+    return NextResponse.json({ error: "Error al crear categoría" }, { status: 500 });
   }
 }
-

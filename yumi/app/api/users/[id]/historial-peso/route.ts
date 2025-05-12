@@ -73,7 +73,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       // Calcular tendencia (promedio de cambio por día)
       if (registros.length > 1) {
         const diasTranscurridos =
-          (new Date(registros[0].fecha).getTime() - new Date(registros[registros.length - 1].fecha).getTime()) /
+          (new Date(registros[0].fecha!).getTime() - new Date(registros[registros.length - 1].fecha!).getTime()) /
           (1000 * 60 * 60 * 24)
         tendencia = diasTranscurridos > 0 ? cambio / diasTranscurridos : 0
       }
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (metasUsuarioEncontrado) {
       await db
-        .update(metasUsuarioEncontrado)
+        .update(metasUsuario)
         .set({
           peso: body.peso,
           fechaActualizacion: new Date(),
